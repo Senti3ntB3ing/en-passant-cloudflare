@@ -70,9 +70,8 @@ server.listen([ROOT, "mod"], request => {
 	const mod = request.url.includes("mod");
 	return {
 		headers: new Headers({ "Content-Type": "text/html" }),
-		status: 200, body: new TextDecoder().decode(
-			Deno.readFileSync("./help.html")
-		).replace("`%ACTIONS%`", JSON.stringify(actions))
+		status: 200, body: helpHTML
+		.replace("`%ACTIONS%`", JSON.stringify(actions))
 			.replace("`%PROGRAMMABLES%`", JSON.stringify(programmables))
 			.replace("`%PREFIX%`", `'${Prefix}'`)
 			.replace("`%MOD%`", JSON.stringify(mod))
@@ -83,9 +82,8 @@ server.listen("queue", () => {
 	const join = programmables.find(p => p.commands.includes("join"));
 	return {
 		headers: new Headers({ "Content-Type": "text/html" }),
-		status: 200, body: new TextDecoder().decode(
-			Deno.readFileSync("./queue.html")
-		).replace("`%LIST%`", JSON.stringify(queue.list))
+		status: 200, body: queueHTML
+		.replace("`%LIST%`", JSON.stringify(queue.list))
 			.replace("`%QUEUE%`", queue.enabled ? "'on'" : "'off'")
 			.replace("`%CHALLENGE%`", challenge ? "'on'" : "'off'")
 			.replace("`%SUBONLY%`", join.permissions === 'sub' ? "'on'" : "'off'")
@@ -1092,7 +1090,6 @@ class Queue {
 
 }
 
-
 // --- twitch.js --- //
 
 // const TWITCH_CLIENT_ID = await Database.get("twitch_client_id");
@@ -1237,3 +1234,172 @@ async function refresh() {
 }
 
 //#endregion
+
+//#region html
+
+const helpHTML = '<!DOCTYPE html>'+
+'<html lang="en">'+
+'<head>'+
+	'<meta charset="UTF-8">'+
+	'<title>en-passant 🇺🇳 BOT Twitch Actions 🛟</title>'+
+	'<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tw-elements/dist/css/index.min.css">'+
+	'<script src="https://cdn.tailwindcss.com"></script>'+
+	'<meta name="theme-color" content="#101827">'+
+	'<meta name="author" content="Zachary Saine">'+
+	'<style>'+
+		'@font-face {'+
+			'font-family: "Noto Color Emoji";'+
+			'src: url(https://raw.githack.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf);'+
+		'}'+
+		'h1 {'+
+			'font-family: -apple-system, ui-sans-serif, system-ui, "Apple Color Emoji", "Noto Color Emoji";'+
+		'}'+
+		'a, .text-blue { color: #6cbdff !important; }'+
+		'.bot {'+
+			'background: #5765F2;'+
+			'border-radius: 2px;'+
+			'padding: 2px 4px;'+
+			'font-size: 10px;'+
+			'color: #fff;'+
+		'}'+
+		'body {'+
+			'overflow-x: hidden;'+
+			'font-size: 12px;'+
+			'padding: 5vw;'+
+			'margin: 5vw;'+
+		'}'+
+		'.wrapper { max-width: 90vw; }'+
+		'table {'+
+			'border-radius: 10px;'+
+			'border-collapse: separate;'+
+			'border: black;'+
+			'max-width: 90vw;'+
+			'white-space: normal;'+
+		'}'+
+		'#list tr td { white-space: normal; }'+
+		'#list tr td a {'+
+			'overflow-wrap: break-word;'+
+			'white-space: pre-wrap;'+
+			'word-break: break-all;'+
+		'}'+
+		'#list tr td:nth-child(2) {'+
+			'word-wrap: break-word;'+
+    		'max-width: 200px;'+
+		'}'+
+	'</style>'+
+'</head>'+
+'<body class="bg-gray-900">'+
+	'<div class="wrapper">'+
+		'<h1 class="text-lg text-gray-200 font-medium text-center my-6">en-passant 🇺🇳 <span class="bot">BOT</span> Twitch Actions 🛟</h1>'+
+		'<div class="rounded-lg shadow-md overflow-auto">'+
+			'<table class="text-gray-400 sm:text-lg md:text-md lg:text-lg">'+
+				'<thead class="bg-gray-800 uppercase font-medium md:text-md">'+
+					'<tr>'+
+						'<th scope="col" class="px-6 py-3 text-left tracking-wider"></th>'+
+						'<th scope="col" class="px-6 py-3 text-left tracking-wider">Command</th>'+
+						'<th scope="col" class="px-6 py-3 text-left tracking-wider">Description</th>'+
+					'</tr>'+
+				'</thead>'+
+				'<tbody id="list" class="bg-gray-800"></tbody>'+
+			'</table>'+
+		'</div>'+
+	'</div>'+
+	'<script type="text/javascript">'+
+		'const URL_FETCH = /(?:https?:\/\/)?((?:[A-Za-z0-9_\-]+\.)+(?:com?|it|uk|gov|org|tv|gg|be|gle)(?:[^!,. ]+)*)/g;'+
+		'const urlify = text => text.replace('+
+			'URL_FETCH, \'<a href="https://$1" target="_blank">$1</a>\''+
+		').replace(/@\w+/g, \'<span class="text-gray-300">$&</span>\');'+
+		'const emojis = p => ({ mod: \'🛂\', sub: \'💟\', vip: \'✴️\', all: \'✅\' }[p]);'+
+		'const mod = `%MOD%`, prefix = `%PREFIX%`;'+
+		'const actions = `%ACTIONS%`.filter(a => mod || a.permissions != \'mod\').sort('+
+			'(a, b) => a.commands[0] > b.commands[0] ? 1 : -1'+
+		').map(a => `<tr class="bg-black even:bg-opacity-20 odd:bg-opacity-30">'+
+			'<td class="px-6 py-4" title="${a.permissions.toUpperCase()}">${emojis(a.permissions)}</td>'+
+			'<td class="px-6 py-4 font-mono text-white">${a.commands.map(c => prefix + c).join(\' \')}</td>'+
+			'<td class="px-6 py-4" style="">${urlify(a.reply).replace(/->/g, \'→\')}</td>'+
+		'</tr>`).join(\'\n\')'+
+		'const programmables = `%PROGRAMMABLES%`.filter(p => mod || p.permissions != \'mod\').sort('+
+			'(a, b) => a.commands[0] > b.commands[0] ? 1 : -1'+
+		').map(p => `<tr class="bg-black odd:bg-opacity-20 even:bg-opacity-30">'+
+			'<td class="px-6 py-4" title="${p.permissions.toUpperCase()}">${emojis(p.permissions)}</td>'+
+			'<td class="px-6 py-4 font-mono text-white">${p.commands.map(c => prefix + c).join(\' \')}</td>'+
+			'<td class="px-6 py-4" style="">${urlify(p.description).replace(/->/g, \'→\')}</td>'+
+		'</tr>`).join(\'\n\');'+
+		'const separator = `<tr><td colspan="3" class="divider"><hr style="border-color:#1F2838"></td></tr>`;'+
+		'document.getElementById(\'list\').innerHTML = actions + separator + programmables;'+
+	'</script>'+
+'</body>'+
+'</html>';
+
+const queueHTML = '<!DOCTYPE html>'+
+'<html lang="en">'+
+'<head>'+
+	'<meta charset="UTF-8">'+
+	'<title>en-passant 🇺🇳 BOT Queue 🎟️</title>'+
+	'<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tw-elements/dist/css/index.min.css">'+
+	'<script src="https://cdn.tailwindcss.com"></script>'+
+	'<meta name="theme-color" content="#101827">'+
+	'<meta name="author" content="Zachary Saine">'+
+	'<style>'+
+		'body { overflow-x: hidden; }'+
+		'@font-face {'+
+			'font-family: "Noto Color Emoji";'+
+			'src: url(https://raw.githack.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf);'+
+		'}'+
+        'h1 {'+
+			'font-family: -apple-system, ui-sans-serif, system-ui, "Apple Color Emoji", "Noto Color Emoji";'+
+        '}'+
+		'a, .text-blue { color: #6cbdff !important; }'+
+		'.bot {'+
+			'background: #5765F2;'+
+			'border-radius: 2px;'+
+			'padding: 2px 4px;'+
+			'font-size: 10px;'+
+			'color: #fff;'+
+		'}'+
+		'code.text-purple { color: #772ce8; }'+
+		'code.text-green { color: #67ca44; }'+
+	'</style>'+
+'</head>'+
+'<body class="bg-gray-900">'+
+	'<div class="flex flex-col items-center justify-center w-screen min-h-screen bg-gray-900 py-10">'+
+		'<h1 class="text-lg text-gray-200 font-medium">en-passant 🇺🇳 <span class="bot">BOT</span> Queue 🎟️</h1>'+
+		'<h3 class="mt-6 uppercase mb-4"><b><a href="/queue/">🔄 Refresh</a></b></h3>'+
+		'<div class="flex flex-col mt-6">'+
+			'<div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">'+
+				'<div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">'+
+					'<div class="shadow overflow-hidden sm:rounded-lg">'+
+						'<table class="min-w-full text-sm text-gray-400">'+
+							'<thead class="bg-gray-800 text-xs uppercase font-medium">'+
+								'<tr><td id="status" colspan="3" class="px-6 py-3 text-center tracking-wider uppercase text-blue"></td></tr>'+
+								'<tr><td colspan="3" class="divider"><hr style="border-color:#18212c;border-top-width:2px;"></td></tr>'+
+								'<tr>'+
+									'<th scope="col" class="px-6 py-3 text-center tracking-wider" width="40px">#</th>'+
+									'<th scope="col" class="px-6 py-3 text-center tracking-wider">Twitch Name</th>'+
+									'<th scope="col" class="px-6 py-3 text-center tracking-wider">Chess.com</th>'+
+								'</tr>'+
+							'</thead>'+
+							'<tbody id="list" class="bg-gray-800"></tbody>'+
+						'</table>'+
+					'</div>'+
+				'</div>'+
+			'</div>'+
+		'</div>'+
+	'</div>'+
+	'<script type="text/javascript">'+
+		'const emojis = p => ({ off: \'🔴\', on:\'🟢\' }[p]);'+
+		'const queue = `%QUEUE%`, challenge = `%CHALLENGE%`, subonly = `%SUBONLY%`;'+
+		'document.getElementById(\'status\').innerHTML = `'+
+			'<b>Queue</b> ${emojis(queue)}'+
+			'<b class="pl-5">Sub-only</b> ${emojis(subonly)}'+
+			'<b class="pl-5">Challenge</b> ${emojis(challenge)}'+
+		'`;'+
+		'document.getElementById(\'list\').innerHTML = `%LIST%`.map('+
+		'(m, i) => `<tr class="bg-black even:bg-opacity-20 odd:bg-opacity-30">'+
+			'<td class="px-6 py-4 text-center whitespace-nowrap font-mono">${i + 1}</td>'+
+			'<td class="px-6 py-4 text-center whitespace-nowrap font-mono"><a href="https://www.twitch.tv/${m.user}" target="_blank"><code class="text-purple">@${m.user}</code></a></td>'+
+			'<td class="px-6 py-4 text-center whitespace-nowrap font-mono"><a href="https://www.chess.com/member/${m.profile}" target="_blank"><code class="text-green">${m.profile}</code></a></td>'+
+		'</tr>`).join(\'\n\');'+
+	'</script>'+
+'</body>'+
+'</html>';
